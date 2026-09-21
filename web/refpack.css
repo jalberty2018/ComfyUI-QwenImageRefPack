@@ -1,0 +1,1115 @@
+/* MiniMax References Manager — DOM half of the hybrid UI.
+ *
+ * Visual spec: the DOM/canvas split stays VISIBLE. There is NO wrapping
+ * panel — buttons and the prompt textarea sit directly on ComfyUI's own grey node
+ * background, and the canvas is the one BLACK slab on the node (its background is
+ * set here; its edge, section dividers and everything inside are drawn — see
+ * refpack.js draw()). Palette stays LTX Director's flat neutral greyscale, no
+ * gradients; the only colour anywhere is #ff4444 (danger / selection).
+ *
+ * FIXED GEOMETRY: the node is fixed-size (refpack.js fixedSize()), and that
+ * arithmetic assumes the heights pinned here — .mmrp-uploads 30px, .mmrp-direction
+ * 110px, .mmrp-block gap 8px (CONTENT.uploadsH / promptH / gap in refpack.js),
+ * and .mmrp-preview matches CL.tile (131px). Change one side only in lockstep
+ * with the other.
+ */
+
+.mmrp-block {
+    position: relative; /* offsetParent for the canvas and the preview overlay */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 12px;
+    color: #e0e0e0;
+    background: transparent; /* the grey node body IS the background */
+}
+
+/* Light-black fill, white text, flat — buttons on the node, not a custom panel. */
+.mmrp-btn {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: #fff;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.mmrp-btn:hover:not(:disabled) {
+    background: #333;
+    border-color: #555;
+}
+
+.mmrp-btn:focus-visible,
+.mmrp-director-asset:focus-visible,
+.mmrp-director-card:focus-visible,
+.mmrp-director-add-shot:focus-visible {
+    outline: 2px solid #d6b55b;
+    outline-offset: 2px;
+}
+
+.mmrp-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* Same surface as every other button — emphasis through weight, not a new shade. */
+.mmrp-btn-primary {
+    font-weight: 600;
+}
+
+/* The one deliberate exception to the rule above is green
+   because it means "running on your own machine, nothing billed" and because it is the
+   only button here that reconfigures three widgets at once. It is also the only button
+   that comes and goes (shown only while prompt_provider is `local`), so a colour change
+   doubles as the signal that the node is in a different mode. */
+.mmrp-local-btn {
+    background: #17402f;
+    border-color: #2e7d5b;
+    color: #7fdcaa;
+    font-weight: 600;
+}
+
+.mmrp-local-btn:hover:not(:disabled) {
+    background: #1d5340;
+    border-color: #3d9c72;
+}
+
+/* ---- upload row (also holds Save/Load config + the ⚙ settings button) ----
+   Fixed 30px, no wrap: the node is fixed at 1340px wide, everything fits on one
+   line, and the fixed-height arithmetic depends on this never growing.
+   Per spec: buttons are content-sized and LEFT-weighted — a comfortable group on
+   the left of the node, never stretched edge to edge; only the ⚙ sits far right. */
+
+.mmrp-uploads {
+    position: relative; /* anchors .mmrp-pack-panel */
+    display: flex;
+    flex-wrap: nowrap;
+    height: 30px;
+    gap: 8px;
+}
+
+.mmrp-upload-btn {
+    flex: 0 0 auto; /* size to content — "not spanning across the whole node" */
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 14px; /* comfortable, "not crammed"; height comes from the 30px row */
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.mmrp-upload-btn svg {
+    display: block;
+    flex: 0 0 auto;
+}
+
+.mmrp-gear-btn {
+    flex: 0 0 auto;
+    margin-left: auto; /* far right, on its own */
+    width: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.mmrp-pack-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 20;
+    margin-top: 4px;
+    min-width: 140px;
+    max-height: 180px;
+    overflow-y: auto;
+    background: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 4px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+    font-size: 12px;
+}
+
+.mmrp-pack-item {
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mmrp-pack-item:hover {
+    background: #333;
+}
+
+/* Save-config variant of the pack panel: name box + Save button + a status line.
+   Replaces window.prompt(), which some embeddings refuse (see saveConfig). */
+.mmrp-save-panel {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px;
+    overflow: visible;
+}
+
+.mmrp-save-name {
+    flex: 1 1 auto;
+    min-width: 150px;
+    background: #111;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #e0e0e0;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+}
+
+.mmrp-save-name:focus {
+    border-color: #888;
+}
+
+.mmrp-save-name::placeholder {
+    color: #666;
+}
+
+.mmrp-save-status {
+    flex: 1 0 100%;
+    font-size: 11px;
+    color: #aaa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mmrp-save-status:empty {
+    display: none;
+}
+
+/* ---- the reference area: one black drawn slab ----
+   The black background is what announces "this is the reference area" against the
+   grey node; the 1px edge and everything inside are drawn on the canvas itself
+   (a CSS border would offset hit-test coordinates from the drawn content box).
+   Height is set inline once from CANVAS_ROWS.height — fixed, like everything else.
+   display:block kills the inline-baseline gap under the canvas (same fix as the
+   reference's .pr-canvas). */
+
+.mmrp-canvas {
+    display: block;
+    width: 100%;
+    background: #000;
+    border-radius: 6px;
+}
+
+/* The single shared click-to-play video overlay, positioned over a tile by
+   togglePreview(). Child of .mmrp-block, so ComfyUI's zoom transform applies to
+   it exactly as it does to the canvas underneath. */
+
+.mmrp-preview {
+    position: absolute;
+    display: none;
+    width: 131px; /* CL.tile */
+    height: 131px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #000;
+    z-index: 5;
+    cursor: pointer;
+}
+
+/* ---- prompt (bound to the hidden `direction` widget) ----
+   One plain textarea on the grey, fixed at 110px — halved per spec ("it's even
+   larger than the rows of the canvas"), so it now sits clearly smaller than a
+   canvas row. Definition comes from the dark fill against the grey node body
+   plus a visible border — no overlay label, no unfocused dimming: a low-contrast
+   border plus opacity once made this box read as absent, so it stays fully opaque
+   at rest. */
+
+.mmrp-direction {
+    width: 100%;
+    height: 110px;
+    box-sizing: border-box;
+    background: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #e0e0e0;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.45;
+    resize: none; /* the node is fixed-size; the box is too */
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+}
+
+.mmrp-direction:focus {
+    border-color: #888;
+}
+
+.mmrp-direction::placeholder {
+    color: #666;
+}
+
+/* ---- system prompt modal (the ONLY place system_prompt is shown) ---- */
+
+.mmrp-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.mmrp-modal {
+    background: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 8px;
+    width: min(520px, 92vw);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+    color: #e0e0e0;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.mmrp-modal-header {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.mmrp-modal-hint {
+    color: #888;
+    font-size: 11px;
+}
+
+.mmrp-modal-textarea {
+    width: 100%;
+    min-height: 220px;
+    resize: vertical;
+    box-sizing: border-box;
+    background: #111;
+    border: 1px solid #444;
+    color: #e0e0e0;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-family: inherit;
+}
+
+.mmrp-modal-textarea:focus {
+    outline: none;
+    border-color: #666;
+}
+
+.mmrp-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* ---- Director modal ------------------------------------------------------- */
+
+.mmrp-director-modal {
+    width: min(760px, 94vw);
+    max-height: 88vh;
+}
+
+.mmrp-director-master {
+    min-height: 96px;
+}
+
+.mmrp-director-shots {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    max-height: 48vh;
+    padding-right: 2px;
+}
+
+.mmrp-director-shot {
+    border: 1px solid #3d3d3d;
+    background: #181818;
+    border-radius: 5px;
+    padding: 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.mmrp-director-shot-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mmrp-director-remove {
+    font-size: 11px;
+    padding: 3px 6px;
+}
+
+.mmrp-director-brief {
+    min-height: 58px;
+    resize: vertical;
+    box-sizing: border-box;
+    background: #111;
+    border: 1px solid #444;
+    color: #e0e0e0;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font: inherit;
+}
+
+.mmrp-director-controls {
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1fr) 82px;
+    gap: 6px;
+}
+
+.mmrp-director-controls input,
+.mmrp-director-controls select {
+    min-width: 0;
+    box-sizing: border-box;
+    background: #111;
+    border: 1px solid #444;
+    color: #e0e0e0;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font: inherit;
+}
+
+.mmrp-director-refs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    color: #aaa;
+    font-size: 11px;
+}
+
+.mmrp-director-refs label {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mmrp-director-status {
+    min-height: 15px;
+    color: #d6b55b;
+    font-size: 11px;
+}
+
+.mmrp-director-empty {
+    color: #888;
+    border: 1px dashed #444;
+    border-radius: 5px;
+    padding: 12px;
+    font-size: 12px;
+}
+
+/* ---- embedded Director canvas -------------------------------------------- */
+
+.mmrp-director-workspace {
+    height: 700px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #e0e0e0;
+}
+
+.mmrp-director-top {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 8px;
+    align-items: stretch;
+}
+
+.mmrp-director-title {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: #fff;
+}
+
+.mmrp-director-master-inline {
+    min-height: 64px;
+    box-sizing: border-box;
+    resize: none;
+    background: #171717;
+    border: 1px solid #444;
+    border-radius: 5px;
+    color: #e0e0e0;
+    padding: 8px 10px;
+    font: inherit;
+}
+
+.mmrp-director-master-inline:focus,
+.mmrp-director-field textarea:focus,
+.mmrp-director-field input:focus,
+.mmrp-director-field select:focus {
+    outline: none;
+    border-color: #888;
+}
+
+.mmrp-director-board {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr) 270px;
+    border: 1px solid #3d3d3d;
+    border-radius: 6px;
+    background: #101010;
+    overflow: hidden;
+}
+
+.mmrp-director-source,
+.mmrp-director-inspector {
+    min-width: 0;
+    padding: 10px;
+    background: #181818;
+}
+
+.mmrp-director-source {
+    border-right: 1px solid #333;
+    overflow-y: auto;
+}
+
+.mmrp-director-inspector {
+    border-left: 1px solid #333;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.mmrp-director-section-title {
+    color: #aaa;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.mmrp-director-source-assets,
+.mmrp-director-inspector-assets {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.mmrp-director-canvas {
+    min-width: 0;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.mmrp-director-canvas-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.mmrp-director-continue-all {
+    padding: 3px 8px;
+    font-size: 11px;
+}
+
+.mmrp-director-continuity-hint {
+    min-height: 18px;
+    color: #999;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.mmrp-director-shot-track {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    min-height: 0;
+    padding: 2px 2px 10px;
+    align-items: stretch;
+}
+
+.mmrp-director-asset {
+    position: relative;
+    min-width: 0;
+    aspect-ratio: 1;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #0c0c0c;
+    color: #aaa;
+    cursor: pointer;
+}
+
+.mmrp-director-asset:hover,
+.mmrp-director-card:hover,
+.mmrp-director-add-shot:hover {
+    border-color: #777;
+}
+
+.mmrp-director-asset.mmrp-selected,
+.mmrp-director-card.mmrp-selected {
+    border-color: #e0e0e0;
+    box-shadow: inset 0 0 0 1px #e0e0e0;
+}
+
+.mmrp-director-asset img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.mmrp-director-asset-kind {
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    max-width: calc(100% - 6px);
+    padding: 2px 3px;
+    background: rgba(0, 0, 0, 0.72);
+    border-radius: 2px;
+    color: #ddd;
+    font-size: 9px;
+    text-transform: uppercase;
+}
+
+.mmrp-director-asset-tag {
+    position: absolute;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    overflow: hidden;
+    padding: 3px 4px;
+    background: rgba(0, 0, 0, 0.84);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 3px;
+    color: #f3f3f3;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    line-height: 1.25;
+    text-align: left;
+    white-space: normal;
+}
+
+.mmrp-director-asset-tag.mmrp-unassigned {
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #aaa;
+    font-family: inherit;
+    font-size: 9px;
+}
+
+.mmrp-director-asset-action {
+    position: absolute;
+    right: 3px;
+    top: 3px;
+    padding: 2px 3px;
+    background: rgba(0, 0, 0, 0.72);
+    border-radius: 2px;
+    color: #ddd;
+    font-size: 9px;
+}
+
+.mmrp-director-audio-icon {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+}
+
+.mmrp-director-card {
+    flex: 0 0 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 10px;
+    text-align: left;
+    background: #1c1c1c;
+    border: 1px solid #444;
+    border-radius: 5px;
+    color: #e0e0e0;
+    cursor: pointer;
+}
+
+.mmrp-director-card-head {
+    color: #fff;
+    font-weight: 600;
+}
+
+.mmrp-director-card-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    color: #aaa;
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mmrp-director-continuity-badge {
+    display: block;
+    width: fit-content;
+    margin-top: 4px;
+    padding: 2px 4px;
+    border: 1px solid #555;
+    border-radius: 3px;
+    color: #d6b55b;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.mmrp-director-continuity-badge.mmrp-audio,
+.mmrp-director-handoff-reference.mmrp-audio {
+    border-color: #36536b;
+    background: #111a22;
+    color: #8fc4e8;
+}
+
+.mmrp-director-card-thumbs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    min-height: 72px;
+    color: #777;
+    font-size: 11px;
+    align-content: start;
+}
+
+.mmrp-director-asset.mmrp-compact {
+    pointer-events: none;
+    min-height: 60px;
+}
+
+.mmrp-director-card-brief {
+    color: #bbb;
+    font-size: 12px;
+    line-height: 1.4;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+.mmrp-director-add-shot {
+    flex: 0 0 130px;
+    align-self: stretch;
+    border: 1px dashed #555;
+    border-radius: 5px;
+    background: transparent;
+    color: #aaa;
+    cursor: pointer;
+    font: inherit;
+}
+
+.mmrp-director-inspector-body {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    color: #888;
+    font-size: 12px;
+}
+
+.mmrp-director-more-assets {
+    color: #aaa;
+    font-size: 11px;
+}
+
+.mmrp-director-assigned-label {
+    margin-top: 2px;
+    color: #aaa;
+    font-size: 11px;
+}
+
+.mmrp-director-handoff-reference {
+    padding: 6px 7px;
+    border: 1px solid #5f5129;
+    border-radius: 4px;
+    background: #1d1a11;
+    color: #d6b55b;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.mmrp-director-inspector-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #fff;
+    font-weight: 600;
+}
+
+.mmrp-director-reorder {
+    display: flex;
+    gap: 4px;
+}
+
+.mmrp-director-reorder .mmrp-btn {
+    padding: 2px 7px;
+}
+
+.mmrp-director-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #aaa;
+    font-size: 11px;
+}
+
+.mmrp-director-field textarea,
+.mmrp-director-field input,
+.mmrp-director-field select {
+    min-width: 0;
+    box-sizing: border-box;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #111;
+    color: #e0e0e0;
+    padding: 6px 7px;
+    font: inherit;
+}
+
+.mmrp-director-field textarea {
+    min-height: 76px;
+    resize: vertical;
+}
+
+.mmrp-director-lora-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.mmrp-director-lora-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 54px 28px;
+    gap: 4px;
+    align-items: center;
+}
+
+.mmrp-director-lora-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 54px 28px;
+    gap: 4px;
+    color: #777;
+    font-size: 10px;
+}
+
+.mmrp-director-lora-row select,
+.mmrp-director-lora-row input {
+    width: 100%;
+    height: 30px;
+}
+
+.mmrp-director-lora-remove {
+    width: 28px;
+    height: 30px;
+    padding: 0;
+    color: #aaa;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.mmrp-director-lora-remove:hover {
+    color: #fff;
+    border-color: #777;
+}
+
+.mmrp-director-lora-empty {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    padding: 0 7px;
+    border: 1px dashed #3d3d3d;
+    border-radius: 4px;
+    color: #777;
+}
+
+.mmrp-director-lora-add {
+    align-self: flex-start;
+    padding: 4px 7px;
+    color: #bbb;
+    font-size: 11px;
+}
+
+.mmrp-director-continuity-modes {
+    display: grid;
+    grid-template-columns: 0.7fr 1.25fr 1.1fr;
+    gap: 4px;
+}
+
+.mmrp-director-continuity-modes .mmrp-btn {
+    padding: 4px 5px;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.mmrp-director-continuity-modes .mmrp-btn[aria-pressed="true"] {
+    border-color: #d6b55b;
+    color: #fff;
+}
+
+.mmrp-director-source-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.mmrp-director-source-row {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) 28px;
+    gap: 4px;
+    align-items: center;
+}
+
+.mmrp-director-source-row select {
+    width: 100%;
+    height: 30px;
+}
+
+.mmrp-director-source-remove {
+    width: 28px;
+    height: 30px;
+    padding: 0;
+    color: #aaa;
+    font-size: 16px;
+}
+
+.mmrp-director-source-add {
+    align-self: flex-start;
+    padding: 4px 7px;
+    color: #bbb;
+    font-size: 11px;
+}
+
+.mmrp-director-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-height: 30px;
+}
+
+.mmrp-director-footer .mmrp-director-status {
+    margin-right: auto;
+    padding: 0;
+}
+
+.mmrp-director-run-hint {
+    color: #aaa;
+    font-size: 11px;
+    text-align: right;
+}
+
+/* ---- local server picker (openLocalServerModal) ----
+   Same modal family. The model rows are full-width buttons rather than a <select>
+   because picking one is a commit, not a preference: it rewrites three widgets at
+   once, so it should look like an action. */
+
+.mmrp-server-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.mmrp-server-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mmrp-server-title {
+    color: #aaa;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid #333;
+    padding-bottom: 4px;
+    margin-bottom: 2px;
+}
+
+.mmrp-server-empty {
+    color: #777;
+    font-size: 11px;
+    font-style: italic;
+    padding: 2px 0 2px 8px;
+}
+
+.mmrp-server-model {
+    justify-content: flex-start;
+    text-align: left;
+    width: 100%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+}
+
+/* ---- crop/trim edit modal (openEditModal) ----
+   Same overlay/modal family as the system prompt modal, widened for media. The
+   crop rect works in percentages of the media box, so no JS pixel sync is needed
+   when the media loads — the layer just tracks the element it overlays. */
+
+.mmrp-edit-modal {
+    width: min(720px, 94vw);
+}
+
+.mmrp-edit-stage {
+    position: relative;
+    align-self: center;
+    max-width: 100%;
+}
+
+/* The edit preview reframes the media inside this box: it becomes the crop's window
+   (explicit size + overflow hidden), with the media absolutely placed inside it. */
+.mmrp-edit-media-wrap {
+    position: relative;
+    overflow: hidden;
+    line-height: 0;
+}
+
+.mmrp-edit-stage img,
+.mmrp-edit-stage video {
+    display: block;
+    max-width: 672px;
+    max-height: 400px;
+    background: #000;
+}
+
+.mmrp-edit-stage audio {
+    display: block;
+    width: 560px;
+    max-width: 100%;
+}
+
+.mmrp-crop-layer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden; /* contains the rect's 9999px darkening shadow */
+}
+
+.mmrp-crop-rect {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid #fff;
+    /* darkens everything OUTSIDE the rect without a second element */
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+    cursor: move;
+}
+
+.mmrp-crop-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border: 1px solid #000;
+    box-sizing: border-box;
+}
+
+.mmrp-crop-nw { left: -6px; top: -6px; cursor: nwse-resize; }
+.mmrp-crop-ne { right: -6px; top: -6px; cursor: nesw-resize; }
+.mmrp-crop-sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
+.mmrp-crop-se { right: -6px; bottom: -6px; cursor: nwse-resize; }
+
+.mmrp-aspect-row,
+.mmrp-transform-row,
+.mmrp-trim-row,
+.mmrp-play-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.mmrp-aspect-row .mmrp-btn.mmrp-active,
+.mmrp-transform-row .mmrp-btn.mmrp-active {
+    background: #e0e0e0;
+    border-color: #e0e0e0;
+    color: #000;
+}
+
+.mmrp-transform-state {
+    color: #aaa;
+    font-size: 11px;
+    min-width: 76px;
+    white-space: nowrap;
+}
+
+.mmrp-edit-label {
+    color: #888;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.mmrp-trim-bar {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 160px;
+    height: 18px;
+    background: #141414;
+    border: 1px solid #444;
+    border-radius: 4px;
+}
+
+.mmrp-trim-span {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: rgba(224, 224, 224, 0.22);
+}
+
+.mmrp-trim-handle {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 10px;
+    background: #e0e0e0;
+    border: 1px solid #000;
+    border-radius: 2px;
+    cursor: ew-resize;
+}
+
+.mmrp-trim-num {
+    width: 64px;
+    background: #111;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #e0e0e0;
+    padding: 4px 6px;
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+}
+
+.mmrp-trim-num:focus {
+    border-color: #888;
+}
+
+/* The Clear pair — one per row, pushed to the row's right edge so "Clear crop" and
+   "Clear trim" read as a pair. Disabled styling comes from .mmrp-btn:disabled. */
+.mmrp-clear-btn {
+    margin-left: auto;
+}

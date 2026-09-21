@@ -1,0 +1,28 @@
+from pathlib import Path
+
+SOURCE = (Path(__file__).parents[1] / "web" / "qwen_image_refpack.js").read_text()
+
+def test_frontend_uses_fixed_image_canvas_and_ten_slots():
+    assert 'const KINDS = ["image"]' in SOURCE
+    assert "const CAPS = { image: 10 }" in SOURCE
+    assert "const GRID_COLUMNS = 5" in SOURCE
+    assert "const GRID_ROWS = 2" in SOURCE
+    assert "width: 800" in SOURCE
+    assert "bottomPad: 14" in SOURCE
+    assert 'document.createElement("canvas")' in SOURCE
+    assert "drawAddSquare" in SOURCE
+    assert "openEditModal" in SOURCE
+
+def test_frontend_does_not_expose_prompt_video_or_audio_controls():
+    custom_block = SOURCE.split("function buildCustomBlock(node)", 1)[1].split("// Config (reference pack)", 1)[0]
+    registration = SOURCE.split("app.registerExtension({", 1)[1]
+    assert '"video", "Video"' not in custom_block
+    assert '"audio", "Audio"' not in custom_block
+    assert "mmrp-uploads" not in custom_block
+    assert "Save config" not in custom_block
+    assert "Load config" not in custom_block
+    assert "Local LLM" not in custom_block
+    assert "Director" not in custom_block
+    assert "directionInput" not in custom_block
+    assert 'widgetByName(node, "prompt_provider")' not in registration
+    assert "installDirectorRunHook" not in registration
