@@ -3,9 +3,9 @@ import pytest
 from qwen_refpack.refs import MAX_IMAGES, ReferenceError, ReferenceSet, output_names
 
 
-def test_contract_has_ten_image_outputs_only():
-    assert MAX_IMAGES == 10
-    assert output_names() == tuple(f"image_{i}" for i in range(1, 11))
+def test_contract_has_two_image_outputs_only():
+    assert MAX_IMAGES == 2
+    assert output_names() == ("First image", "Last image")
 
 
 def test_rejects_video_and_audio_references():
@@ -13,7 +13,7 @@ def test_rejects_video_and_audio_references():
         ReferenceSet.from_obj({"references": [{"kind": "video", "file": "clip.mp4"}]})
 
 
-def test_rejects_more_than_ten_images():
-    with pytest.raises(ReferenceError, match="at most 10"):
-        ReferenceSet.from_obj({"references": [{"kind": "image", "file": f"{i}.png"} for i in range(11)]})
+def test_rejects_more_than_two_images():
+    with pytest.raises(ReferenceError, match="at most 2"):
+        ReferenceSet.from_obj({"references": [{"kind": "image", "file": f"{i}.png"} for i in range(3)]})
 

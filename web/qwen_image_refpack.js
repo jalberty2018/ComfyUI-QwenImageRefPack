@@ -94,6 +94,7 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 const NODE_NAME = "QwenImageReferencePack";
+const LOCAL_NODE_NAME = "QwenImageLocalReferencePack";
 
 // ---------------------------------------------------------------------------
 // 0.3.1 -> 0.3.2 widget migration.
@@ -734,7 +735,7 @@ function directorLoraSelectValues(options, currentValue) {
 // <<< MMRP-DIRECTOR
 
 const KINDS = ["image"];
-const CAPS = { image: 10 };
+const CAPS = { image: 2 };
 const SECTION_LABEL = { image: "Images" };
 
 // LTX Director's flat neutral palette (WhatDreamsCost js/ltx_director.js), counted
@@ -786,8 +787,8 @@ const CL = {
     addBtn: 44,
     addGap: 24,
 };
-const GRID_COLUMNS = 5;
-const GRID_ROWS = 2;
+const GRID_COLUMNS = 2;
+const GRID_ROWS = 1;
 CL.stripH = CL.stripPad * 2 + GRID_ROWS * CL.tile + (GRID_ROWS - 1) * CL.gap;
 
 // The rows never move: every section is always drawn at full tile height, 0 items or
@@ -812,7 +813,7 @@ const CANVAS_ROWS = (() => {
 // is why no scroll machinery exists; change tile/gap/x0/pad/addBtn/addGap only
 // together with this width.
 const CONTENT = {
-    width: 800,
+    width: 420,
     pad: 10, // side inset of the DOM block within the node
     bottomPad: 14,
 };
@@ -841,7 +842,7 @@ export function assignTags(refs) {
     const audios = (refs && refs.audios) || [];
     const tagged = { images: [], videos: [], audios: [] };
 
-    images.forEach((ref, i) => tagged.images.push({ ref, tag: `<Picture ${i + 1}>` }));
+    images.forEach((ref, i) => tagged.images.push({ ref, tag: ["First image", "Last image"][i] || `<Picture ${i + 1}>` }));
 
     let audioN = 0;
     videos.forEach((ref, i) => {
@@ -3148,6 +3149,65 @@ const KIND_UPLOAD_META = [
     ["image", "Image", "image/*"],
 ];
 
+async function openLocalInputPicker(node) {
+    const overlay = document.createElement("div");
+    overlay.className = "mmrp-overlay";
+    overlay.onclick = (event) => { if (event.target === overlay) overlay.remove(); };
+    const modal = document.createElement("div");
+    modal.className = "mmrp-modal";
+    const heading = document.createElement("div");
+    heading.className = "mmrp-modal-header";
+    heading.textContent = "Choose images from ComfyUI/input";
+    const status = document.createElement("div");
+    status.className = "mmrp-modal-hint";
+    const search = document.createElement("input");
+    search.placeholder = "Filter filenames...";
+    search.setAttribute("aria-label", "Filter input images");
+    search.onkeydown = (event) => event.stopPropagation();
+    const list = document.createElement("div");
+    list.style.cssText = "display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto";
+    const close = document.createElement("button");
+    close.className = "mmrp-btn";
+    close.textContent = "Close";
+    close.onclick = () => overlay.remove();
+    modal.append(heading, status, search, list, close);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    let files = [];
+    const render = () => {
+        list.replaceChildren();
+        const refs = node._mmrpRefs.images;
+        status.textContent = `${refs.length}/2 selected. Choose First image, then Last image.`;
+        const matches = files.filter((file) => file.toLowerCase().includes(search.value.toLowerCase()));
+        if (!matches.length) list.textContent = "No images found.";
+        for (const file of matches) {
+            const button = document.createElement("button");
+            button.className = "mmrp-btn";
+            button.textContent = file;
+            button.disabled = refs.length >= CAPS.image || refs.some((ref) => ref.file === file);
+            button.onclick = () => {
+                const next = cloneRefs(node._mmrpRefs);
+                if (next.images.length >= CAPS.image) return;
+                next.images.push({ file });
+                applyRefs(node, next);
+                if (next.images.length >= CAPS.image) overlay.remove();
+                else render();
+            };
+            list.appendChild(button);
+        }
+    };
+    search.oninput = render;
+    status.textContent = "Loading images...";
+    try {
+        const response = await api.fetchApi("/qwen_image_refpack/files?kind=image");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        files = (await response.json()).files || [];
+        render();
+    } catch (error) {
+        status.textContent = `Could not read ComfyUI/input: ${error.message}`;
+    }
+}
+
 function buildCustomBlock(node) {
     const container = document.createElement("div");
     container.className = "mmrp-block";
@@ -3155,6 +3215,10 @@ function buildCustomBlock(node) {
 
     const fileInputs = {};
     for (const [kind, label, accept] of KIND_UPLOAD_META) {
+        if (node._qwenLocalInput) {
+            fileInputs[kind] = { click: () => openLocalInputPicker(node) };
+            continue;
+        }
         const input = document.createElement("input");
         input.type = "file";
         input.accept = accept;
@@ -4378,13 +4442,14 @@ app.registerExtension({
     name: "QwenImageRefPack.RefManager",
 
     async beforeRegisterNodeDef(nodeType, nodeData) {
-        if (nodeData.name !== NODE_NAME) return;
+        if (![NODE_NAME, LOCAL_NODE_NAME].includes(nodeData.name)) return;
 
         const origOnNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             origOnNodeCreated?.apply(this, arguments);
             injectStyles();
             const node = this;
+            node._qwenLocalInput = nodeData.name === LOCAL_NODE_NAME;
 
             const refsWidget = widgetByName(node, "references_json");
             node._mmrpRefs = parseRefsValue(refsWidget);
@@ -4412,6 +4477,14 @@ app.registerExtension({
                 const rw = widgetByName(this, "references_json");
                 stopPreview(this);
                 this._mmrpRefs = parseRefsValue(rw);
+                // Saved workflows restore their old output sockets as well.
+                while (this.outputs?.length > 2) this.removeOutput(this.outputs.length - 1);
+                ["First image", "Last image"].forEach((name, index) => {
+                    if (this.outputs?.[index]) {
+                        this.outputs[index].name = name;
+                        this.outputs[index].label = name;
+                    }
+                });
                 this._mmrpSelected = null;
                 // configure() writes the serialized size straight onto node.size,
                 // bypassing our setSize wrapper — re-assert the fixed size.

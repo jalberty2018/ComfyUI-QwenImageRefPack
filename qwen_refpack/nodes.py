@@ -49,5 +49,15 @@ class QwenImageReferencePack:
             outputs[index] = media.load_image(str(refs.reference_path(input_dir, reference.file)), crop=reference.crop, max_edge=max_reference_edge, rotation=reference.rotation, mirror=reference.mirror)
         return tuple(outputs)
 
-NODE_CLASS_MAPPINGS = {"QwenImageReferencePack": QwenImageReferencePack}
-NODE_DISPLAY_NAME_MAPPINGS = {"QwenImageReferencePack": "Qwen Image References Manager"}
+class QwenImageLocalReferencePack(QwenImageReferencePack):
+    """Select existing images from ComfyUI/input using the shared image editor."""
+
+
+NODE_CLASS_MAPPINGS = {
+    "QwenImageReferencePack": QwenImageReferencePack,
+    "QwenImageLocalReferencePack": QwenImageLocalReferencePack,
+}
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "QwenImageReferencePack": "Qwen Image References Manager",
+    "QwenImageLocalReferencePack": "Qwen Image References Manager (Local Input)",
+}

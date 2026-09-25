@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from aiohttp import web
 
@@ -46,7 +47,16 @@ async def list_files_route(request: web.Request) -> web.Response:
     if request.query.get("kind") != "image":
         return web.Response(status=400, text="kind must be image")
     input_dir = folder_paths.get_input_directory()
-    files = [name for name in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, name))]
+    files = []
+    for directory, _, names in os.walk(input_dir, followlinks=False):
+        for name in names:
+            relative = (Path(directory) / name).relative_to(input_dir).as_posix()
+            try:
+                if reference_path(input_dir, relative).is_file():
+                    files.append(relative)
+            except ReferenceError:
+                continue
+    files.sort(key=str.casefold)
     return web.json_response({"files": folder_paths.filter_files_content_types(files, ["image"])})
 
 

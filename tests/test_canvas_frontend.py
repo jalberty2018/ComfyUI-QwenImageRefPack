@@ -2,12 +2,12 @@ from pathlib import Path
 
 SOURCE = (Path(__file__).parents[1] / "web" / "qwen_image_refpack.js").read_text()
 
-def test_frontend_uses_fixed_image_canvas_and_ten_slots():
+def test_frontend_uses_fixed_image_canvas_and_two_slots():
     assert 'const KINDS = ["image"]' in SOURCE
-    assert "const CAPS = { image: 10 }" in SOURCE
-    assert "const GRID_COLUMNS = 5" in SOURCE
-    assert "const GRID_ROWS = 2" in SOURCE
-    assert "width: 800" in SOURCE
+    assert "const CAPS = { image: 2 }" in SOURCE
+    assert "const GRID_COLUMNS = 2" in SOURCE
+    assert "const GRID_ROWS = 1" in SOURCE
+    assert "width: 420" in SOURCE
     assert "bottomPad: 14" in SOURCE
     assert 'document.createElement("canvas")' in SOURCE
     assert "drawAddSquare" in SOURCE

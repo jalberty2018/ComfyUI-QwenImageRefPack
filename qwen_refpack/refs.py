@@ -1,4 +1,4 @@
-"""Validated image-reference state and the ten-output Qwen contract."""
+"""Validated image-reference state and the two-output first/last image contract."""
 from __future__ import annotations
 
 import json
@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PureWindowsPath
 from typing import Any
 
-MAX_IMAGES = 10
+MAX_IMAGES = 2
 
 class ReferenceError(ValueError):
     pass
@@ -84,7 +84,7 @@ class ReferenceSet:
         return [ref.file for ref in self.references if not reference_path(input_dir, ref.file).is_file()]
 
 def output_names() -> tuple[str, ...]:
-    return tuple(f"image_{i}" for i in range(1, MAX_IMAGES + 1))
+    return ("First image", "Last image")
 
 def output_types() -> tuple[str, ...]:
     return ("IMAGE",) * MAX_IMAGES
