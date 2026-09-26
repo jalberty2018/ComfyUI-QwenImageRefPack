@@ -2,7 +2,7 @@
 from __future__ import annotations
 import hashlib
 import os
-from . import media, refs
+from . import media, refs, scaling
 
 DEFAULT_MAX_REFERENCE_EDGE = 2048
 
@@ -54,8 +54,47 @@ class QwenImageFirstLastReferencePack(QwenImageReferencePack):
     """Fork-specific first/last-frame upload manager."""
 
     MAX_IMAGES = 2
-    RETURN_TYPES = ("IMAGE",) * 2
-    RETURN_NAMES = ("First image", "Last image")
+    RETURN_TYPES = ("IMAGE", "IMAGE", "INT", "INT", "INT", "INT")
+    RETURN_NAMES = ("First image", "Last image", "first_width", "first_height", "last_width", "last_height")
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        # Keep references first for positional workflow serialization.
+        inputs = super().INPUT_TYPES()
+        inputs["optional"].pop("max_reference_edge")
+        inputs["optional"].update({
+            "megapixels": ("FLOAT", {"default": 1.05, "min": 0.0, "max": 16.0, "step": 0.01,
+                "tooltip": "Target megapixels per image. 0 disables megapixel scaling."}),
+            "multiple_of": ("INT", {"default": 16, "min": 1, "max": 128, "step": 1}),
+            "resize_mode": (scaling.RESIZE_MODES, {"default": "crop"}),
+            "upscale_method": (scaling.UPSCALE_METHODS, {"default": "lanczos"}),
+            "width": ("INT", {"default": 0, "min": 0, "max": 16384,
+                "tooltip": "Set both width and height above 0 to override megapixels for both images."}),
+            "height": ("INT", {"default": 0, "min": 0, "max": 16384,
+                "tooltip": "Set both width and height above 0 to override megapixels for both images."}),
+        })
+        return inputs
+
+    @classmethod
+    def IS_CHANGED(cls, references_json="", megapixels=1.05, multiple_of=16,
+                   resize_mode="crop", upscale_method="lanczos", width=0, height=0, **kwargs):
+        signature = super().IS_CHANGED(references_json, max_reference_edge=0)
+        return signature + repr((megapixels, multiple_of, resize_mode, upscale_method, width, height))
+
+    def build(self, references_json="", megapixels=1.05, multiple_of=16,
+              resize_mode="crop", upscale_method="lanczos", width=0, height=0, **kwargs):
+        images = super().build(references_json, max_reference_edge=0)
+        outputs, dimensions = [], []
+        for image in images:
+            if image is None:
+                outputs.append(None)
+                dimensions.extend((0, 0))
+            else:
+                image, w, h = scaling.scale_image(image, megapixels, multiple_of,
+                                                resize_mode, upscale_method, width, height)
+                outputs.append(image)
+                dimensions.extend((w, h))
+        return tuple(outputs + dimensions)
 
 
 class QwenImageLocalReferencePack(QwenImageFirstLastReferencePack):

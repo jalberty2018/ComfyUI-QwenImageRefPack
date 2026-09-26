@@ -32,4 +32,51 @@ def test_upstream_and_fork_frontend_registration():
     assert 'tenImages ? "QwenImageReferencePack" : "QwenImageFirstLastReferencePack"' in SOURCE
     assert 'tenImages ? "QwenImageLocalReferencePack10" : "QwenImageLocalReferencePack"' in SOURCE
     assert 'if (tenImages) supportedNames.push("QwenImageReferencePack10")' in SOURCE
-    assert 'while (this.outputs?.length > CAPS.image)' in SOURCE
+    assert 'while (this.outputs?.length > names.length)' in SOURCE
+
+
+def test_old_first_last_workflow_migrates_widgets_and_keeps_links():
+    import json
+    import shutil
+    import subprocess
+    import pytest
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Node.js is needed for workflow migration test")
+    body = SOURCE.split("node.onConfigure = function (info) {", 1)[1].split("\n            };", 1)[0]
+    script = r'''const assert = require("node:assert/strict");
+const tenImages = false;
+const origOnConfigure = null;
+const nodeData = {
+  output_name: ["First image", "Last image", "first_width", "first_height", "last_width", "last_height"],
+  output: ["IMAGE", "IMAGE", "INT", "INT", "INT", "INT"]
+};
+const widgetByName = (node, name) => node.widgets.find(w => w.name === name);
+const setWidget = (node, name, value) => { widgetByName(node, name).value = value; };
+const stopPreview = () => {};
+const parseRefsValue = w => JSON.parse(w.value);
+const fixedSize = () => [420, 600];
+const renderNodeBody = () => {};
+const target = {
+  widgets: ["references_json", "megapixels", "multiple_of", "resize_mode", "upscale_method", "width", "height"].map(name => ({name, value: 2048})),
+  outputs: [{name: "First image", type: "IMAGE", links: [101]}, {name: "Last image", type: "IMAGE", links: [102]}],
+  addOutput(name, type) { this.outputs.push({name, type}); },
+  removeOutput(index) { this.outputs.splice(index, 1); },
+  setSize() {}
+};
+const configure = function(info) { BODY };
+configure.call(target, {widgets_values: ['[{"file":"original.png"}]', 2048]});
+assert.equal(widgetByName(target, "megapixels").value, 1.05);
+assert.equal(widgetByName(target, "multiple_of").value, 16);
+assert.deepEqual(target._mmrpRefs, [{file: "original.png"}]);
+assert.deepEqual(target.outputs.map(o => o.type), nodeData.output);
+assert.deepEqual(target.outputs.map(o => o.name), nodeData.output_name);
+assert.deepEqual(target.outputs[0].links, [101]);
+assert.deepEqual(target.outputs[1].links, [102]);
+widgetByName(target, "megapixels").value = 2;
+configure.call(target, {widgets_values: ['[{"file":"original.png"}]', 2, 32, "pad", "area", 640, 480]});
+assert.equal(widgetByName(target, "megapixels").value, 2);
+assert.equal(target.outputs.length, 6);
+'''.replace("BODY", body)
+    subprocess.run([node, "-e", script], check=True, capture_output=True, text=True)

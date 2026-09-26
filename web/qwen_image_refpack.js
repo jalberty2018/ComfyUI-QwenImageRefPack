@@ -826,7 +826,8 @@ CONTENT.height = CANVAS_ROWS.height + CONTENT.bottomPad;
 // litegraph placed the DOM block below the native widgets (fallback for the beat
 // before the first layout assigns last_y).
 function fixedSize(node) {
-    const widgetY = (node._mmrpDomWidget && node._mmrpDomWidget.last_y) || 80;
+    const nativeHeight = (node.widgets || []).filter((w) => w !== node._mmrpDomWidget && !w.hidden).length * 24;
+    const widgetY = (node._mmrpDomWidget && node._mmrpDomWidget.last_y) || (80 + nativeHeight);
     const outputsMin = ((node.outputs && node.outputs.length) || 1) * 20 + 40;
     return [CONTENT.width, Math.max(widgetY + CONTENT.height + CONTENT.pad, outputsMin)];
 }
@@ -4479,15 +4480,29 @@ app.registerExtension({
             const origOnConfigure = node.onConfigure;
             node.onConfigure = function (info) {
                 const out = origOnConfigure ? origOnConfigure.apply(this, arguments) : undefined;
+                // Legacy First/Last workflows stored [references_json, max_reference_edge].
+                // The old edge value must never become a megapixel count.
+                if (!tenImages && info?.widgets_values?.length === 2) {
+                    for (const [name, value] of Object.entries({megapixels: 1.05, multiple_of: 16,
+                        resize_mode: "crop", upscale_method: "lanczos", width: 0, height: 0})) {
+                        setWidget(this, name, value);
+                    }
+                    setWidget(this, "references_json", info.widgets_values[0]);
+                }
                 const rw = widgetByName(this, "references_json");
                 stopPreview(this);
                 this._mmrpRefs = parseRefsValue(rw);
                 // Saved workflows restore their old output sockets as well.
-                while (this.outputs?.length > CAPS.image) this.removeOutput(this.outputs.length - 1);
-                const names = tenImages ? Array.from({ length: 10 }, (_, i) => `image_${i + 1}`) : ["First image", "Last image"];
-                while ((this.outputs?.length || 0) < CAPS.image) this.addOutput(names[this.outputs?.length || 0], "IMAGE");
+                const names = nodeData.output_name;
+                const types = nodeData.output;
+                while (this.outputs?.length > names.length) this.removeOutput(this.outputs.length - 1);
+                while ((this.outputs?.length || 0) < names.length) {
+                    const index = this.outputs?.length || 0;
+                    this.addOutput(names[index], types[index]);
+                }
                 names.forEach((name, index) => {
                     if (this.outputs?.[index]) {
+                        this.outputs[index].type = types[index];
                         this.outputs[index].name = name;
                         this.outputs[index].label = name;
                     }

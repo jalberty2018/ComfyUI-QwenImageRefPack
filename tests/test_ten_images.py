@@ -38,6 +38,6 @@ def test_upstream_identity_and_fork_contracts():
     assert list(original.INPUT_TYPES()["optional"]) == ["references_json", "max_reference_edge"]
     for name in ("QwenImageFirstLastReferencePack", "QwenImageLocalReferencePack"):
         variant = nodes.NODE_CLASS_MAPPINGS[name]
-        assert variant.RETURN_NAMES == ("First image", "Last image")
+        assert variant.RETURN_NAMES == ("First image", "Last image", "first_width", "first_height", "last_width", "last_height")
         assert variant.MAX_IMAGES == 2
     assert len(set(nodes.NODE_DISPLAY_NAME_MAPPINGS.values())) == len(nodes.NODE_CLASS_MAPPINGS)
