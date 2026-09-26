@@ -94,8 +94,8 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 function registerReferenceManager(tenImages = false) {
-const NODE_NAME = tenImages ? "QwenImageReferencePack" : "QwenImageFirstLastReferencePack";
-const LOCAL_NODE_NAME = tenImages ? "QwenImageLocalReferencePack10" : "QwenImageLocalReferencePack";
+const NODE_NAME = tenImages ? "QwenImageReferencePack" : "QwenImageUploadFirstLastReferencePack";
+const LOCAL_NODE_NAME = tenImages ? "QwenImageLocalInput10ReferencePack" : "QwenImageLocalInputFirstLastReferencePack";
 
 // ---------------------------------------------------------------------------
 // 0.3.1 -> 0.3.2 widget migration.
@@ -4459,7 +4459,6 @@ app.registerExtension({
 
     async beforeRegisterNodeDef(nodeType, nodeData) {
         const supportedNames = [NODE_NAME, LOCAL_NODE_NAME];
-        if (tenImages) supportedNames.push("QwenImageReferencePack10");
         if (!supportedNames.includes(nodeData.name)) return;
 
         const origOnNodeCreated = nodeType.prototype.onNodeCreated;
@@ -4492,15 +4491,6 @@ app.registerExtension({
             const origOnConfigure = node.onConfigure;
             node.onConfigure = function (info) {
                 const out = origOnConfigure ? origOnConfigure.apply(this, arguments) : undefined;
-                // Legacy First/Last workflows stored [references_json, max_reference_edge].
-                // The old edge value must never become a megapixel count.
-                if (!tenImages && info?.widgets_values?.length === 2) {
-                    for (const [name, value] of Object.entries({megapixels: 1.05, multiple_of: 16,
-                        resize_mode: "crop", upscale_method: "lanczos", width: 0, height: 0})) {
-                        setWidget(this, name, value);
-                    }
-                    setWidget(this, "references_json", info.widgets_values[0]);
-                }
                 const rw = widgetByName(this, "references_json");
                 stopPreview(this);
                 this._mmrpRefs = parseRefsValue(rw);

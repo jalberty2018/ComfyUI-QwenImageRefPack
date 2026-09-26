@@ -8,7 +8,7 @@ from qwen_refpack import nodes
 from qwen_refpack.refs import ReferenceError
 
 
-@pytest.mark.parametrize("node_class", [nodes.QwenImageReferencePack, nodes.QwenImageReferencePack10, nodes.QwenImageLocalReferencePack10])
+@pytest.mark.parametrize("node_class", [nodes.QwenImageReferencePack, nodes.QwenImageLocalInput10ReferencePack])
 def test_ten_image_order_and_empty_slots(node_class, tmp_path, monkeypatch):
     monkeypatch.setitem(sys.modules, "folder_paths", SimpleNamespace(get_input_directory=lambda: str(tmp_path)))
     nested = tmp_path / "nested"
@@ -28,7 +28,7 @@ def test_ten_image_order_and_empty_slots(node_class, tmp_path, monkeypatch):
     with pytest.raises(ReferenceError, match="at most 10"):
         node.build(json.dumps(refs + refs[:1]))
     with pytest.raises(ReferenceError, match="at most 2"):
-        nodes.QwenImageFirstLastReferencePack().build(json.dumps(refs))
+        nodes.QwenImageUploadFirstLastReferencePack().build(json.dumps(refs))
 
 
 def test_upstream_identity_and_fork_contracts():
@@ -36,8 +36,19 @@ def test_upstream_identity_and_fork_contracts():
     assert nodes.NODE_DISPLAY_NAME_MAPPINGS["QwenImageReferencePack"] == "Qwen Image References Manager"
     assert original.RETURN_NAMES == tuple(f"image_{i}" for i in range(1, 11))
     assert list(original.INPUT_TYPES()["optional"]) == ["references_json", "max_reference_edge"]
-    for name in ("QwenImageFirstLastReferencePack", "QwenImageLocalReferencePack"):
+    for name in ("QwenImageUploadFirstLastReferencePack", "QwenImageLocalInputFirstLastReferencePack"):
         variant = nodes.NODE_CLASS_MAPPINGS[name]
         assert variant.RETURN_NAMES == ("First image", "Last image", "first_width", "first_height", "last_width", "last_height")
         assert variant.MAX_IMAGES == 2
     assert len(set(nodes.NODE_DISPLAY_NAME_MAPPINGS.values())) == len(nodes.NODE_CLASS_MAPPINGS)
+
+
+def test_only_current_node_ids_are_registered():
+    expected = {
+        "QwenImageReferencePack",
+        "QwenImageUploadFirstLastReferencePack",
+        "QwenImageLocalInputFirstLastReferencePack",
+        "QwenImageLocalInput10ReferencePack",
+    }
+    assert set(nodes.NODE_CLASS_MAPPINGS) == expected
+    assert set(nodes.NODE_DISPLAY_NAME_MAPPINGS) == expected

@@ -50,7 +50,7 @@ class QwenImageReferencePack:
             outputs[index] = media.load_image(str(refs.reference_path(input_dir, reference.file)), crop=reference.crop, max_edge=max_reference_edge, rotation=reference.rotation, mirror=reference.mirror)
         return tuple(outputs)
 
-class QwenImageFirstLastReferencePack(QwenImageReferencePack):
+class QwenImageUploadFirstLastReferencePack(QwenImageReferencePack):
     """Fork-specific first/last-frame upload manager."""
 
     MAX_IMAGES = 2
@@ -97,28 +97,23 @@ class QwenImageFirstLastReferencePack(QwenImageReferencePack):
         return tuple(outputs + dimensions)
 
 
-class QwenImageLocalReferencePack(QwenImageFirstLastReferencePack):
+class QwenImageLocalInputFirstLastReferencePack(QwenImageUploadFirstLastReferencePack):
     """Fork-specific first/last-frame manager using ComfyUI/input."""
 
 
-class QwenImageLocalReferencePack10(QwenImageReferencePack):
+class QwenImageLocalInput10ReferencePack(QwenImageReferencePack):
     """Fork-specific ten-image manager using ComfyUI/input."""
 
 
-# Preserve workflows saved with the first ten-image fork release.
-QwenImageReferencePack10 = QwenImageReferencePack
-
 NODE_CLASS_MAPPINGS = {
     "QwenImageReferencePack": QwenImageReferencePack,
-    "QwenImageFirstLastReferencePack": QwenImageFirstLastReferencePack,
-    "QwenImageLocalReferencePack": QwenImageLocalReferencePack,
-    "QwenImageLocalReferencePack10": QwenImageLocalReferencePack10,
-    "QwenImageReferencePack10": QwenImageReferencePack10,
+    "QwenImageUploadFirstLastReferencePack": QwenImageUploadFirstLastReferencePack,
+    "QwenImageLocalInputFirstLastReferencePack": QwenImageLocalInputFirstLastReferencePack,
+    "QwenImageLocalInput10ReferencePack": QwenImageLocalInput10ReferencePack,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "QwenImageReferencePack": "Qwen Image References Manager",
-    "QwenImageFirstLastReferencePack": "Qwen Image References Manager (First/Last)",
-    "QwenImageLocalReferencePack": "Qwen Image References Manager (Local Input, First/Last)",
-    "QwenImageLocalReferencePack10": "Qwen Image References Manager (Local Input, 10 Images)",
-    "QwenImageReferencePack10": "Qwen Image References Manager (10 Images, Legacy Fork ID)",
+    "QwenImageUploadFirstLastReferencePack": "Qwen Image References Manager (Upload, First/Last)",
+    "QwenImageLocalInputFirstLastReferencePack": "Qwen Image References Manager (Local Input, First/Last)",
+    "QwenImageLocalInput10ReferencePack": "Qwen Image References Manager (Local Input, 10 Images)",
 }

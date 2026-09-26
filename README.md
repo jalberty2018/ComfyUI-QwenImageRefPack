@@ -9,19 +9,13 @@ downscaling. The original upstream node retains its name, ID, inputs and ten
 | Display name | Node ID | Outputs | Source |
 | --- | --- | --- | --- |
 | Qwen Image References Manager | `QwenImageReferencePack` | `image_1` through `image_10` | Upload |
-| Qwen Image References Manager (First/Last) | `QwenImageFirstLastReferencePack` | `First image`, `Last image`, `first_width`, `first_height`, `last_width`, `last_height` | Upload |
-| Qwen Image References Manager (Local Input, First/Last) | `QwenImageLocalReferencePack` | `First image`, `Last image`, `first_width`, `first_height`, `last_width`, `last_height` | Local input |
-| Qwen Image References Manager (Local Input, 10 Images) | `QwenImageLocalReferencePack10` | `image_1` through `image_10` | Local input |
+| Qwen Image References Manager (Upload, First/Last) | `QwenImageUploadFirstLastReferencePack` | `First image`, `Last image`, `first_width`, `first_height`, `last_width`, `last_height` | Upload |
+| Qwen Image References Manager (Local Input, First/Last) | `QwenImageLocalInputFirstLastReferencePack` | `First image`, `Last image`, `first_width`, `first_height`, `last_width`, `last_height` | Local input |
+| Qwen Image References Manager (Local Input, 10 Images) | `QwenImageLocalInput10ReferencePack` | `image_1` through `image_10` | Local input |
 
-`QwenImageReferencePack10` is retained as a compatibility alias for the previous
-fork release, displayed as **Qwen Image References Manager (10 Images, Legacy Fork ID)**.
-For new ten-image upload nodes, use **Qwen Image References Manager**.
-
-Earlier fork versions reused the upstream ID for a two-image upload node.
-Those saved nodes now load as the original ten-image node: their first two
-connections retain the same output indices, and eight more outputs are available.
-To keep the compact two-image layout, replace them with **Qwen Image References
-Manager (First/Last)** and reconnect the first/last outputs.
+Only the original upstream ID `QwenImageReferencePack` is preserved for compatibility.
+The fork variants use the descriptive IDs above; old fork IDs and workflow
+migrations are no longer supported. Add the current nodes to replace old fork nodes.
 
 ## Install
 
@@ -66,10 +60,6 @@ four appended INT outputs report the actual scaled dimensions:
 `first_width`, `first_height`, `last_width`, `last_height`.
 An absent image returns `None` with width/height 0.
 
-Old First/Last workflows retain their images and connections when opened in the
-browser, and receive the new scaling defaults instead of the old edge limit.
-Review the scaling settings and save the workflow after updating. Saved API
-prompts should replace `max_reference_edge` with the new settings.
 These nodes do not generate prompts and have no video or audio support.
 
 ## Development
