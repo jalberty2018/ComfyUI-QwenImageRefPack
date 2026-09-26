@@ -1,6 +1,6 @@
 [project]
 name = "comfyui-qwenimagerefpack"
-description = "Two-image reference manager for MiniMax H3 I2VA and FL2VA."
+description = "Upstream-compatible ten-image reference manager with first/last and local input variants."
 version = "0.1.0"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"

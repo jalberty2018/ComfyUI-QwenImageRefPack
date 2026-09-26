@@ -27,9 +27,9 @@ class QwenImageReferencePack:
             "max_reference_edge": ("INT", {"default": DEFAULT_MAX_REFERENCE_EDGE, "min": 0, "max": 8192, "step": 64, "tooltip": "Downscale references whose long edge exceeds this. 0 disables the cap."}),
         }}
 
-    MAX_IMAGES = 2
-    RETURN_TYPES = refs.output_types()
-    RETURN_NAMES = refs.output_names()
+    MAX_IMAGES = 10
+    RETURN_TYPES = ("IMAGE",) * 10
+    RETURN_NAMES = tuple(f"image_{i}" for i in range(1, 11))
     FUNCTION = "build"
     CATEGORY = "Qwen Image"
 
@@ -50,31 +50,36 @@ class QwenImageReferencePack:
             outputs[index] = media.load_image(str(refs.reference_path(input_dir, reference.file)), crop=reference.crop, max_edge=max_reference_edge, rotation=reference.rotation, mirror=reference.mirror)
         return tuple(outputs)
 
-class QwenImageLocalReferencePack(QwenImageReferencePack):
-    """Select existing images from ComfyUI/input using the shared image editor."""
+class QwenImageFirstLastReferencePack(QwenImageReferencePack):
+    """Fork-specific first/last-frame upload manager."""
+
+    MAX_IMAGES = 2
+    RETURN_TYPES = ("IMAGE",) * 2
+    RETURN_NAMES = ("First image", "Last image")
 
 
-class QwenImageReferencePack10(QwenImageReferencePack):
-    """Original ten-image upload manager, alongside the first/last variant."""
-
-    MAX_IMAGES = 10
-    RETURN_TYPES = ("IMAGE",) * 10
-    RETURN_NAMES = tuple(f"image_{i}" for i in range(1, 11))
+class QwenImageLocalReferencePack(QwenImageFirstLastReferencePack):
+    """Fork-specific first/last-frame manager using ComfyUI/input."""
 
 
-class QwenImageLocalReferencePack10(QwenImageReferencePack10):
-    """Ten references selected from the local ComfyUI input directory."""
+class QwenImageLocalReferencePack10(QwenImageReferencePack):
+    """Fork-specific ten-image manager using ComfyUI/input."""
 
+
+# Preserve workflows saved with the first ten-image fork release.
+QwenImageReferencePack10 = QwenImageReferencePack
 
 NODE_CLASS_MAPPINGS = {
-    "QwenImageReferencePack10": QwenImageReferencePack10,
-    "QwenImageLocalReferencePack10": QwenImageLocalReferencePack10,
     "QwenImageReferencePack": QwenImageReferencePack,
+    "QwenImageFirstLastReferencePack": QwenImageFirstLastReferencePack,
     "QwenImageLocalReferencePack": QwenImageLocalReferencePack,
+    "QwenImageLocalReferencePack10": QwenImageLocalReferencePack10,
+    "QwenImageReferencePack10": QwenImageReferencePack10,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "QwenImageReferencePack10": "Qwen Image References Manager (10 Images)",
-    "QwenImageLocalReferencePack10": "Qwen Image References Manager (Local Input, 10 Images)",
     "QwenImageReferencePack": "Qwen Image References Manager",
-    "QwenImageLocalReferencePack": "Qwen Image References Manager (Local Input)",
+    "QwenImageFirstLastReferencePack": "Qwen Image References Manager (First/Last)",
+    "QwenImageLocalReferencePack": "Qwen Image References Manager (Local Input, First/Last)",
+    "QwenImageLocalReferencePack10": "Qwen Image References Manager (Local Input, 10 Images)",
+    "QwenImageReferencePack10": "Qwen Image References Manager (10 Images, Legacy Fork ID)",
 }

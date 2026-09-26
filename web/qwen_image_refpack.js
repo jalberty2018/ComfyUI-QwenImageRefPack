@@ -94,7 +94,7 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 function registerReferenceManager(tenImages = false) {
-const NODE_NAME = tenImages ? "QwenImageReferencePack10" : "QwenImageReferencePack";
+const NODE_NAME = tenImages ? "QwenImageReferencePack" : "QwenImageFirstLastReferencePack";
 const LOCAL_NODE_NAME = tenImages ? "QwenImageLocalReferencePack10" : "QwenImageLocalReferencePack";
 
 // ---------------------------------------------------------------------------
@@ -4445,7 +4445,9 @@ app.registerExtension({
     name: `QwenImageRefPack.RefManager${tenImages ? "10" : ""}`,
 
     async beforeRegisterNodeDef(nodeType, nodeData) {
-        if (![NODE_NAME, LOCAL_NODE_NAME].includes(nodeData.name)) return;
+        const supportedNames = [NODE_NAME, LOCAL_NODE_NAME];
+        if (tenImages) supportedNames.push("QwenImageReferencePack10");
+        if (!supportedNames.includes(nodeData.name)) return;
 
         const origOnNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {

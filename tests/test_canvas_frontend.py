@@ -26,3 +26,10 @@ def test_frontend_does_not_expose_prompt_video_or_audio_controls():
     assert "directionInput" not in custom_block
     assert 'widgetByName(node, "prompt_provider")' not in registration
     assert "installDirectorRunHook" not in registration
+
+
+def test_upstream_and_fork_frontend_registration():
+    assert 'tenImages ? "QwenImageReferencePack" : "QwenImageFirstLastReferencePack"' in SOURCE
+    assert 'tenImages ? "QwenImageLocalReferencePack10" : "QwenImageLocalReferencePack"' in SOURCE
+    assert 'if (tenImages) supportedNames.push("QwenImageReferencePack10")' in SOURCE
+    assert 'while (this.outputs?.length > CAPS.image)' in SOURCE
