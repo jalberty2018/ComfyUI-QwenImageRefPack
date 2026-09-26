@@ -33,3 +33,15 @@ node --check web/qwen_image_refpack.js
 ## Local input node
 
 Add **Qwen Image References Manager (Local Input)** from **Qwen Image**. Click the add tile to browse images already in the ComfyUI server’s `input` directory, including subfolders. Filter by filename and choose the first image, then optionally the last image. No upload is needed. This node shares the two outputs, crop, rotation, mirroring, and `max_reference_edge` setting of the upload node. Delete a selected image to choose a replacement.
+
+## Ten-image nodes
+
+The existing two-image nodes remain available. Two additional nodes restore the
+original 5 x 2 image grid:
+
+- **Qwen Image References Manager (10 Images)**: upload up to ten images.
+- **Qwen Image References Manager (Local Input, 10 Images)**: select up to ten images from the local ComfyUI server's `input` directory, including subfolders.
+
+Both expose `image_1` through `image_10` in selection order; empty outputs return
+`None`. Crop, rotation, mirroring and `max_reference_edge` work on each image.
+Restart ComfyUI and refresh the browser, then find these nodes under **Qwen Image**.

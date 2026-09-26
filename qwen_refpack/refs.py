@@ -63,16 +63,16 @@ class ReferenceSet:
     references: list[Reference] = field(default_factory=list)
 
     @classmethod
-    def from_json(cls, value: str | None) -> "ReferenceSet":
+    def from_json(cls, value: str | None, max_images: int = MAX_IMAGES) -> "ReferenceSet":
         if not value: return cls()
         try: raw = json.loads(value)
         except json.JSONDecodeError as exc: raise ReferenceError("references_json is not valid JSON") from exc
-        return cls.from_obj(raw)
+        return cls.from_obj(raw, max_images=max_images)
 
     @classmethod
-    def from_obj(cls, value: Any) -> "ReferenceSet":
+    def from_obj(cls, value: Any, max_images: int = MAX_IMAGES) -> "ReferenceSet":
         raw = value.get("references", []) if isinstance(value, dict) else value
-        if not isinstance(raw, list) or len(raw) > MAX_IMAGES: raise ReferenceError(f"Qwen Image accepts at most {MAX_IMAGES} image references")
+        if not isinstance(raw, list) or len(raw) > max_images: raise ReferenceError(f"Qwen Image accepts at most {max_images} image references")
         refs = [Reference.from_dict(item) for item in raw]
         if any(item.get("kind", "image") != "image" for item in raw): raise ReferenceError("Qwen references must be images")
         return cls(refs)

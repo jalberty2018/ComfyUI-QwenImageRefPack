@@ -93,8 +93,9 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
-const NODE_NAME = "QwenImageReferencePack";
-const LOCAL_NODE_NAME = "QwenImageLocalReferencePack";
+function registerReferenceManager(tenImages = false) {
+const NODE_NAME = tenImages ? "QwenImageReferencePack10" : "QwenImageReferencePack";
+const LOCAL_NODE_NAME = tenImages ? "QwenImageLocalReferencePack10" : "QwenImageLocalReferencePack";
 
 // ---------------------------------------------------------------------------
 // 0.3.1 -> 0.3.2 widget migration.
@@ -736,6 +737,7 @@ function directorLoraSelectValues(options, currentValue) {
 
 const KINDS = ["image"];
 const CAPS = { image: 2 };
+if (tenImages) CAPS.image = 10;
 const SECTION_LABEL = { image: "Images" };
 
 // LTX Director's flat neutral palette (WhatDreamsCost js/ltx_director.js), counted
@@ -787,8 +789,8 @@ const CL = {
     addBtn: 44,
     addGap: 24,
 };
-const GRID_COLUMNS = 2;
-const GRID_ROWS = 1;
+const GRID_COLUMNS = tenImages ? 5 : 2;
+const GRID_ROWS = tenImages ? 2 : 1;
 CL.stripH = CL.stripPad * 2 + GRID_ROWS * CL.tile + (GRID_ROWS - 1) * CL.gap;
 
 // The rows never move: every section is always drawn at full tile height, 0 items or
@@ -817,6 +819,7 @@ const CONTENT = {
     pad: 10, // side inset of the DOM block within the node
     bottomPad: 14,
 };
+if (tenImages) CONTENT.width = 800;
 CONTENT.height = CANVAS_ROWS.height + CONTENT.bottomPad;
 
 // The ONE node size. Height floors against the 19 output sockets; widgetY is where
@@ -836,13 +839,13 @@ function fixedSize(node) {
 // `refs` is {images: [{file}], videos: [{file, use_soundtrack}], audios: [{file}]} — the
 // working state keeps references grouped by kind, one array per kind, in socket order.
 // ---------------------------------------------------------------------------
-export function assignTags(refs) {
+function assignTags(refs) {
     const images = (refs && refs.images) || [];
     const videos = (refs && refs.videos) || [];
     const audios = (refs && refs.audios) || [];
     const tagged = { images: [], videos: [], audios: [] };
 
-    images.forEach((ref, i) => tagged.images.push({ ref, tag: ["First image", "Last image"][i] || `<Picture ${i + 1}>` }));
+    images.forEach((ref, i) => tagged.images.push({ ref, tag: tenImages ? `<Picture ${i + 1}>` : ["First image", "Last image"][i] || `<Picture ${i + 1}>` }));
 
     let audioN = 0;
     videos.forEach((ref, i) => {
@@ -866,7 +869,7 @@ export function assignTags(refs) {
 // must be derived from that shot's compacted reference list rather than the upload
 // ordinals. Generated continuity assets are inserted before the user's references of
 // the same kind, and the visible labels mirror the resulting compacted execution order.
-export function directorReferenceTokens(references, shot, shotIndex = 0, shots = []) {
+function directorReferenceTokens(references, shot, shotIndex = 0, shots = []) {
     const selectedFiles = new Set(Array.isArray(shot && shot.reference_files) ? shot.reference_files : []);
     const grouped = { images: [], videos: [], audios: [] };
     const continuitySources = directorContinuitySources(shot, shotIndex, shots);
@@ -910,7 +913,7 @@ function takeEdit(v) {
 }
 
 // >>> MMRP-IMAGE-TRANSFORMS
-export function normalizeRotation(raw) {
+function normalizeRotation(raw) {
     const value = Number(raw);
     return [0, 90, 180, 270].includes(value) ? value : 0;
 }
@@ -935,7 +938,7 @@ function unorientPoint(x, y, rotation, mirror) {
 
 // Keep a crop on the same source pixels while the user changes orientation. The crop
 // remains an axis-aligned rectangle because quarter-turns and mirrors preserve axes.
-export function reorientCrop(rect, fromRotation, fromMirror, toRotation, toMirror) {
+function reorientCrop(rect, fromRotation, fromMirror, toRotation, toMirror) {
     if (!Array.isArray(rect) || rect.length !== 4) return [0, 0, 1, 1];
     const [x, y, w, h] = rect;
     const corners = [[x, y], [x + w, y], [x, y + h], [x + w, y + h]]
@@ -949,7 +952,7 @@ export function reorientCrop(rect, fromRotation, fromMirror, toRotation, toMirro
 }
 // <<< MMRP-IMAGE-TRANSFORMS
 
-export function fromReferencesList(list) {
+function fromReferencesList(list) {
     const refs = { images: [], videos: [], audios: [] };
     for (const r of list || []) {
         if (!r || typeof r.file !== "string") continue;
@@ -962,7 +965,7 @@ export function fromReferencesList(list) {
     return refs;
 }
 
-export function toReferencesList(refs) {
+function toReferencesList(refs) {
     const out = [];
     const withEdits = (d, r) => {
         if (Array.isArray(r.crop)) d.crop = r.crop.slice();
@@ -986,7 +989,7 @@ export function toReferencesList(refs) {
 
 // The badge's extra line: "2.00-6.50s · cropped" / "2.00-6.50s" / "cropped",
 // or null when the reference is untouched.
-export function editSummary(ref) {
+function editSummary(ref) {
     const parts = [];
     if (ref && Array.isArray(ref.trim)) parts.push(`${ref.trim[0].toFixed(2)}-${ref.trim[1].toFixed(2)}s`);
     if (ref && Array.isArray(ref.crop)) parts.push("cropped");
@@ -1011,7 +1014,7 @@ function clamp01(v, lo, hi) {
 // clamp into the unit square with w capped at 1-x so refs.py's validate_crop can
 // never reject a rect this produced, and collapse a (near-)full-frame rect to null
 // — no crop at all, so an untouched reference serialises exactly as before.
-export function normalizeCrop(rect) {
+function normalizeCrop(rect) {
     if (!rect) return null;
     const r4 = (v) => Math.round(v * 1e4) / 1e4;
     const x = clamp01(r4(rect[0]), 0, 1);
@@ -1027,7 +1030,7 @@ export function normalizeCrop(rect) {
 // window covers (within the 2dp rounding, 4ms) the whole clip — no trim at all,
 // mirroring normalizeCrop's full-frame collapse. Also the predicate behind the
 // modal's "Clear trim" disabled state: null here means there is nothing to clear.
-export function normalizeTrim(trim, duration) {
+function normalizeTrim(trim, duration) {
     if (!trim || !duration) return null;
     const r2 = (v) => Math.round(v * 100) / 100;
     const s = r2(trim[0]);
@@ -1042,7 +1045,7 @@ export function normalizeTrim(trim, duration) {
 // e.g. 16/9) locks the rect's pixel aspect, which in fraction space means
 // hFrac = wFrac * mediaW / (ratio * mediaH). The corner opposite the dragged one
 // is the anchor and never moves.
-export function dragCrop(rect, mode, dx, dy, ratio, mediaW, mediaH) {
+function dragCrop(rect, mode, dx, dy, ratio, mediaW, mediaH) {
     const MIN = 0.02;
     const [x, y, w, h] = rect;
     if (mode === "move") {
@@ -1069,7 +1072,7 @@ export function dragCrop(rect, mode, dx, dy, ratio, mediaW, mediaH) {
 
 // An aspect-preset click: reshape the current rect around its own centre to the
 // given PIXEL ratio, spilling as little as possible past the frame.
-export function setRectAspect(rect, ratio, mediaW, mediaH) {
+function setRectAspect(rect, ratio, mediaW, mediaH) {
     const [x, y, w, h] = rect;
     const cx = x + w / 2;
     const cy = y + h / 2;
@@ -1092,7 +1095,7 @@ export function setRectAspect(rect, ratio, mediaW, mediaH) {
  * itself scales by the same factor and shifts by the crop origin, which is what puts
  * the region under the wrapper's visible window.
  */
-export function cropPreviewBox(crop, dw, dh) {
+function cropPreviewBox(crop, dw, dh) {
     const [x, y, w, h] = crop;
     const cw = dw * w;
     const ch = dh * h;
@@ -1333,7 +1336,7 @@ function logValue(value) {
     return /[ "]/.test(text) ? `"${text.replace(/"/g, "'")}"` : text;
 }
 
-export function logLine(event, fields) {
+function logLine(event, fields) {
     let line = `${LOG_PREFIX} event=${event}`;
     for (const [key, value] of Object.entries(fields || {})) {
         if (value === undefined || value === null) continue;
@@ -1924,7 +1927,7 @@ function getMousePos(canvas, e) {
     };
 }
 
-export function hitTest(node, x, y) {
+function hitTest(node, x, y) {
     const hit = node._mmrpHit;
     if (!hit) return null;
     for (let i = hit.regions.length - 1; i >= 0; i--) {
@@ -3177,7 +3180,7 @@ async function openLocalInputPicker(node) {
     const render = () => {
         list.replaceChildren();
         const refs = node._mmrpRefs.images;
-        status.textContent = `${refs.length}/2 selected. Choose First image, then Last image.`;
+        status.textContent = `${refs.length}/${CAPS.image} selected. ${tenImages ? "Choose images in output order." : "Choose First image, then Last image."}`;
         const matches = files.filter((file) => file.toLowerCase().includes(search.value.toLowerCase()));
         if (!matches.length) list.textContent = "No images found.";
         for (const file of matches) {
@@ -4439,7 +4442,7 @@ function installSizeGuards(node) {
 // ---------------------------------------------------------------------------
 
 app.registerExtension({
-    name: "QwenImageRefPack.RefManager",
+    name: `QwenImageRefPack.RefManager${tenImages ? "10" : ""}`,
 
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (![NODE_NAME, LOCAL_NODE_NAME].includes(nodeData.name)) return;
@@ -4478,8 +4481,10 @@ app.registerExtension({
                 stopPreview(this);
                 this._mmrpRefs = parseRefsValue(rw);
                 // Saved workflows restore their old output sockets as well.
-                while (this.outputs?.length > 2) this.removeOutput(this.outputs.length - 1);
-                ["First image", "Last image"].forEach((name, index) => {
+                while (this.outputs?.length > CAPS.image) this.removeOutput(this.outputs.length - 1);
+                const names = tenImages ? Array.from({ length: 10 }, (_, i) => `image_${i + 1}`) : ["First image", "Last image"];
+                while ((this.outputs?.length || 0) < CAPS.image) this.addOutput(names[this.outputs?.length || 0], "IMAGE");
+                names.forEach((name, index) => {
                     if (this.outputs?.[index]) {
                         this.outputs[index].name = name;
                         this.outputs[index].label = name;
@@ -4503,3 +4508,8 @@ app.registerExtension({
         };
     },
 });
+
+}
+
+registerReferenceManager();
+registerReferenceManager(true);
