@@ -3442,9 +3442,14 @@ function openLoadConfigPanel(node, anchorBtn) {
 // ---------------------------------------------------------------------------
 
 const ASPECT_PRESETS = [
-    ["1:1", 1],
-    ["16:9", 16 / 9],
-    ["9:16", 9 / 16],
+    ["1:1 (Square)", 1],
+    ["2:3 (Portrait Photo)", 2 / 3],
+    ["3:2 (Photo)", 3 / 2],
+    ["3:4 (Portrait Standard)", 3 / 4],
+    ["4:3 (Standard)", 4 / 3],
+    ["9:16 (Portrait Widescreen)", 9 / 16],
+    ["16:9 (Widescreen)", 16 / 9],
+    ["21:9 (Ultrawide)", 21 / 9],
 ];
 
 function openEditModal(node, kind, index) {

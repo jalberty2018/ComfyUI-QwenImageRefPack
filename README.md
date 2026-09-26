@@ -41,6 +41,10 @@ Images fill the grid in output order: 5 x 2 for ten images, 2 x 1 for first/last
 Empty outputs return `None`.
 
 Double-click a tile or use its edit control to crop, rotate or mirror it.
+All nodes share the Crop presets: **Free**, **1:1 (Square)**,
+**2:3 (Portrait Photo)**, **3:2 (Photo)**, **3:4 (Portrait Standard)**,
+**4:3 (Standard)**, **9:16 (Portrait Widescreen)**, **16:9 (Widescreen)**,
+and **21:9 (Ultrawide)**. Free releases the aspect lock for manual cropping.
 The ten-image nodes retain `max_reference_edge` (0 disables downscaling).
 
 ### First/Last scaling
