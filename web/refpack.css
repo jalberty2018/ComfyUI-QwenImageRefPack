@@ -1034,8 +1034,6 @@
 .mmrp-crop-sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
 .mmrp-crop-se { right: -6px; bottom: -6px; cursor: nwse-resize; }
 
-.mmrp-aspect-row,
-.mmrp-transform-row,
 .mmrp-trim-row,
 .mmrp-play-row {
     display: flex;
@@ -1112,4 +1110,53 @@
    "Clear trim" read as a pair. Disabled styling comes from .mmrp-btn:disabled. */
 .mmrp-clear-btn {
     margin-left: auto;
+}
+
+/* Shared label, wrapping controls and action columns in the image editor. */
+.mmrp-aspect-row,
+.mmrp-transform-row {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr) 96px;
+    align-items: start;
+    column-gap: 10px;
+    row-gap: 8px;
+}
+
+.mmrp-aspect-row > .mmrp-edit-label,
+.mmrp-transform-row > .mmrp-edit-label {
+    padding-top: 8px;
+}
+
+.mmrp-edit-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.mmrp-edit-controls > .mmrp-btn {
+    min-height: 32px;
+    white-space: normal;
+}
+
+.mmrp-aspect-row > .mmrp-clear-btn,
+.mmrp-transform-row > .mmrp-clear-btn {
+    margin-left: 0;
+    width: 100%;
+    min-height: 32px;
+}
+
+@media (max-width: 600px) {
+    .mmrp-aspect-row,
+    .mmrp-transform-row {
+        grid-template-columns: 76px minmax(0, 1fr);
+    }
+
+    .mmrp-aspect-row > .mmrp-clear-btn,
+    .mmrp-transform-row > .mmrp-clear-btn {
+        grid-column: 2;
+        justify-self: end;
+        width: 96px;
+    }
 }

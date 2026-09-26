@@ -3593,6 +3593,10 @@ function openEditModal(node, kind, index) {
         label.textContent = "Crop";
         row.appendChild(label);
 
+        const controls = document.createElement("div");
+        controls.className = "mmrp-edit-controls";
+        row.appendChild(controls);
+
         const presets = [["Free", null]];
         const wWidget = widgetByName(node, "width");
         const hWidget = widgetByName(node, "height");
@@ -3615,7 +3619,7 @@ function openEditModal(node, kind, index) {
                     syncCropRect();
                 }
             };
-            row.appendChild(btn);
+            controls.appendChild(btn);
             buttons.push(btn);
         }
         // Nothing is highlighted on open. Free IS the starting behaviour (ratio = null),
@@ -3705,7 +3709,10 @@ function openEditModal(node, kind, index) {
             setOrientation(0, false, true);
         };
 
-        row.append(leftBtn, rightBtn, mirrorBtn, stateLabel, clearTransformBtn);
+        const controls = document.createElement("div");
+        controls.className = "mmrp-edit-controls";
+        controls.append(leftBtn, rightBtn, mirrorBtn, stateLabel);
+        row.append(controls, clearTransformBtn);
         modal.appendChild(row);
         syncTransformControls();
     }
