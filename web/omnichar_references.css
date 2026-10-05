@@ -10,6 +10,7 @@
 .omnichar-refs-label { height: 23px; line-height: 23px; text-align: center; background: #292929; }
 .omnichar-refs-remove { position: absolute; top: 4px; right: 4px; width: 23px; height: 23px; padding: 0; border: 1px solid #888; border-radius: 50%; color: white; background: #222c; cursor: pointer; font-size: 18px; line-height: 18px; }
 .omnichar-refs button:disabled { cursor: wait; opacity: 0.6; }
+.omnichar-refs-edit { position: absolute; top: 4px; left: 4px; width: 23px; height: 23px; padding: 0; border: 1px solid #888; border-radius: 50%; color: white; background: #222c; cursor: pointer; font-size: 16px; line-height: 18px; }
 .omnichar-refs-overlay { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; background: #0009; }
 .omnichar-refs-modal { width: min(620px, 90vw); max-height: 85vh; overflow: auto; display: flex; flex-direction: column; gap: 12px; padding: 20px; border: 1px solid #555; border-radius: 8px; color: #eee; background: #222; font: 14px sans-serif; }
 .omnichar-refs-modal h3 { margin: 0; }

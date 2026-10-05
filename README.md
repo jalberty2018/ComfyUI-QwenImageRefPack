@@ -76,8 +76,11 @@ Connect the nine outputs to the identically named inputs on Omnichar's
 **Encode Character** node. The Clothes outputs use `cloths`, `cloths_2`,
 and `cloths_3` to match Omnichar's input spelling. `max_reference_edge`
 limits the longest image edge (default 2048; 0 disables downscaling).
-This manager provides upload, replacement and removal; use the Qwen managers
-when you need the crop/rotation editor.
+Both Omnichar managers include the same editor as the Qwen managers. Click the
+**scissors** button at the top left of a loaded image to crop (including aspect-ratio
+presets), rotate or mirror it. **Save** applies the edits to that slot and its preview;
+**Cancel** leaves it unchanged. Edits are preserved in the workflow and applied to
+the corresponding image output. Clear crop and Reset remove the respective edits.
 
 **Omnichar Images References Manager (Local Input)** has the same three rows and
 nine outputs. Click a slot to browse images already in the ComfyUI server's

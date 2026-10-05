@@ -1,5 +1,6 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
+import { editImageReference } from "./qwen_image_refpack.js";
 
 const ROWS = [
     { label: "Face", slots: ["face", "face_2", "face_3"] },
@@ -27,7 +28,14 @@ function injectStyles() {
     document.head.appendChild(link);
 }
 
-function imageUrl(file) {
+function imageUrl(file, reference = {}) {
+    if (reference.crop || reference.rotation || reference.mirror) {
+        const params = new URLSearchParams({ file });
+        if (reference.crop) params.set("crop", reference.crop.join(","));
+        if (reference.rotation) params.set("rotate", reference.rotation);
+        if (reference.mirror) params.set("mirror", "1");
+        return api.apiURL(`/qwen_image_refpack/thumb?${params}`);
+    }
     const split = file.lastIndexOf("/");
     return api.apiURL(`/view?${new URLSearchParams({
         filename: file.slice(split + 1), subfolder: split < 0 ? "" : file.slice(0, split), type: "input",
@@ -61,6 +69,7 @@ app.registerExtension({
             let disposed = false;
             let generation = 0;
             let picker = null;
+            let editor = null;
             const busy = new Set();
             const root = document.createElement("div");
             root.className = "omnichar-refs";
@@ -104,6 +113,17 @@ app.registerExtension({
                 input.accept = "image/*";
                 input.onchange = () => upload(name, input.files?.[0]);
                 input.click();
+            };
+            const edit = (name) => {
+                if (!slots[name] || busy.has(name)) return;
+                editor?.remove();
+                const original = slots[name];
+                const started = generation;
+                editor = editImageReference(original, (updated) => {
+                    if (disposed || generation !== started || slots[name] !== original) return;
+                    slots[name] = updated;
+                    commit();
+                });
             };
             async function chooseLocal(name) {
                 picker?.remove();
@@ -187,7 +207,7 @@ app.registerExtension({
                         button.onclick = () => choose(name);
                         if (slots[name] && !busy.has(name)) {
                             const image = document.createElement("img");
-                            image.src = imageUrl(slots[name].file);
+                            image.src = imageUrl(slots[name].file, slots[name]);
                             image.alt = name;
                             image.draggable = false;
                             button.appendChild(image);
@@ -208,6 +228,14 @@ app.registerExtension({
                             remove.disabled = busy.has(name);
                             remove.onclick = () => { delete slots[name]; commit(); };
                             tile.appendChild(remove);
+                            const editButton = document.createElement("button");
+                            editButton.type = "button";
+                            editButton.className = "omnichar-refs-edit";
+                            editButton.textContent = "✂";
+                            editButton.title = `Edit ${name}: crop, rotate or mirror`;
+                            editButton.disabled = busy.has(name);
+                            editButton.onclick = () => edit(name);
+                            tile.appendChild(editButton);
                         }
                         tile.ondragover = (event) => { event.preventDefault(); event.stopPropagation(); };
                         tile.ondrop = (event) => {
@@ -228,6 +256,7 @@ app.registerExtension({
             node.onConfigure = function () {
                 previousConfigure?.apply(this, arguments);
                 generation += 1;
+                editor?.remove();
                 picker?.remove();
                 picker = null;
                 slots = readSlots(stateWidget.value);
@@ -236,6 +265,7 @@ app.registerExtension({
             const previousRemoved = node.onRemoved;
             node.onRemoved = function () {
                 disposed = true;
+                editor?.remove();
                 picker?.remove();
                 clearInterval(hideTimer);
                 clearTimeout(hideTimeout);

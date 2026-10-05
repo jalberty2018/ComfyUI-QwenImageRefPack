@@ -93,9 +93,17 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
+export let editImageReference;
+
 function registerReferenceManager(tenImages = false) {
 const NODE_NAME = tenImages ? "QwenImageReferencePack" : "QwenImageUploadFirstLastReferencePack";
 const LOCAL_NODE_NAME = tenImages ? "QwenImageLocalInput10ReferencePack" : "QwenImageLocalInputFirstLastReferencePack";
+
+if (!tenImages) editImageReference = (reference, onSave) => {
+    injectStyles();
+    const node = { _mmrpRefs: { images: [{ ...reference }], videos: [], audios: [] } };
+    return openEditModal(node, "image", 0, onSave);
+};
 
 // ---------------------------------------------------------------------------
 // 0.3.1 -> 0.3.2 widget migration.
@@ -3452,7 +3460,7 @@ const ASPECT_PRESETS = [
     ["21:9 (Ultrawide)", 21 / 9],
 ];
 
-function openEditModal(node, kind, index) {
+function openEditModal(node, kind, index, onSave = null) {
     const ref = node._mmrpRefs[`${kind}s`][index];
     if (!ref || ref.missing) return;
     mlog("edit_open", { kind, file: ref.file, crop: ref.crop, trim: ref.trim,
@@ -4031,7 +4039,8 @@ function openEditModal(node, kind, index) {
                              cleared: nc === null && nt === null && !transformed });
         dropThumb(ref.file); // the tile re-fetches through the route with the edit
         overlay.remove();
-        applyRefs(node, next);
+        if (onSave) onSave(target);
+        else applyRefs(node, next);
     };
 
     footer.appendChild(cancelBtn);
@@ -4039,6 +4048,7 @@ function openEditModal(node, kind, index) {
     modal.appendChild(footer);
 
     document.body.appendChild(overlay);
+    return overlay;
 }
 
 // ---------------------------------------------------------------------------

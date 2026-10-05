@@ -23,8 +23,13 @@ async function setup(localInput = false) {
     let root;
     const state = { name: "references_json", value: "", options: {} };
     const pending = [];
+    const edits = [];
     const body = new Element("body");
     vm.runInNewContext(source, {
+        editImageReference: (reference, onSave) => {
+            edits.push({ reference, onSave });
+            return new Element("editor");
+        },
         app: { registerExtension: (value) => { extension = value; }, graph: { change() {} } },
         api: {
             apiURL: (path) => `/proxy${path}`,
@@ -53,10 +58,33 @@ async function setup(localInput = false) {
     await extension.beforeRegisterNodeDef(Node, { name: localInput ? "OmnicharLocalInputImagesReferencesManager" : "OmnicharImagesReferencesManager" });
     const node = new Node();
     node.onNodeCreated();
-    return { root, node, state, pending, body };
+    return { root, node, state, pending, body, edits };
 }
 
 function tiles(root) { return root.children.flatMap((section) => section.children[1].children); }
+
+for (const local of [false, true]) {
+    test(`edit saves transforms to the exact slot and restores preview (local=${local})`, async () => {
+        const { root, node, state, edits } = await setup(local);
+        state.value = JSON.stringify({ slots: { body_2: { file: "body.png" }, cloths: { file: "clothes.png" } } });
+        node.onConfigure();
+        tiles(root)[4].children[3].onclick();
+        assert.equal(edits[0].reference.file, "body.png");
+        const updated = { file: "body.png", crop: [0, 0, 0.5, 1], rotation: 90, mirror: true };
+        edits[0].onSave(updated);
+        assert.deepEqual(JSON.parse(state.value).slots.body_2, updated);
+        assert.deepEqual(JSON.parse(state.value).slots.cloths, { file: "clothes.png" });
+        node.onConfigure();
+        const preview = tiles(root)[4].children[0].children[0].src;
+        assert.match(preview, /qwen_image_refpack\/thumb/);
+        assert.match(preview, /rotate=90/);
+        assert.match(preview, /mirror=1/);
+        tiles(root)[4].children[3].onclick();
+        edits[1].onSave({ file: "body.png" });
+        assert.match(tiles(root)[4].children[0].children[0].src, /\/view\?/);
+        node.onRemoved();
+    });
+}
 
 test("local picker filters subfolders and assigns only the selected slot", async () => {
     const { root, node, state, body } = await setup(true);
