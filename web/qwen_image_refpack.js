@@ -95,6 +95,15 @@ import { api } from "../../scripts/api.js";
 
 export let editImageReference;
 
+export function referenceImageUrl(file) {
+    const split = file.lastIndexOf("/");
+    return api.apiURL(`/view?${new URLSearchParams({
+        filename: file.slice(split + 1),
+        subfolder: split < 0 ? "" : file.slice(0, split),
+        type: "input",
+    })}`);
+}
+
 function registerReferenceManager(tenImages = false) {
 const NODE_NAME = tenImages ? "QwenImageReferencePack" : "QwenImageUploadFirstLastReferencePack";
 const LOCAL_NODE_NAME = tenImages ? "QwenImageLocalInput10ReferencePack" : "QwenImageLocalInputFirstLastReferencePack";
@@ -1162,7 +1171,7 @@ function thumbUrl(file, ref) {
 // Raw file, for the click-to-play previews (thumbUrl is a server-generated still).
 // Stock ComfyUI route — confirmed at server.py:511 (`@routes.get("/view")`, no /api prefix).
 function fileUrl(file) {
-    return `/view?filename=${encodeURIComponent(file)}&type=input`;
+    return referenceImageUrl(file);
 }
 
 // NOTE: there is no apiSavePack/apiLoadPack/apiListPacks any more. Configs are files
