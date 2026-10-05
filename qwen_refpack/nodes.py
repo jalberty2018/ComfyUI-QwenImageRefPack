@@ -1,6 +1,7 @@
 """Qwen Image reference manager: image inputs only, no prompt generation."""
 from __future__ import annotations
 import hashlib
+import json
 import os
 from . import media, refs, scaling
 
@@ -49,6 +50,64 @@ class QwenImageReferencePack:
         for index, reference in enumerate(reference_set.references):
             outputs[index] = media.load_image(str(refs.reference_path(input_dir, reference.file)), crop=reference.crop, max_edge=max_reference_edge, rotation=reference.rotation, mirror=reference.mirror)
         return tuple(outputs)
+
+class OmnicharImagesReferencesManager(QwenImageReferencePack):
+    """Nine named slots: removing a reference never moves another role or slot."""
+
+    MAX_IMAGES = 9
+    RETURN_TYPES = ("IMAGE",) * 9
+    RETURN_NAMES = ("face", "face_2", "face_3", "body", "body_2", "body_3",
+                    "cloths", "cloths_2", "cloths_3")
+    DESCRIPTION = "Three rows of three uploads: face, body and clothes. Connect matching outputs to Omnichar Encode Character."
+
+    @classmethod
+    def _slots(cls, references_json):
+        try:
+            raw = json.loads(references_json) if references_json else {"slots": {}}
+        except (TypeError, json.JSONDecodeError) as error:
+            raise refs.ReferenceError("references_json is not valid JSON") from error
+        slots = raw.get("slots") if isinstance(raw, dict) else None
+        if not isinstance(slots, dict) or any(key not in cls.RETURN_NAMES for key in slots):
+            raise refs.ReferenceError("Expected named face, body and cloths slots")
+        result = []
+        for name in cls.RETURN_NAMES:
+            item = slots.get(name)
+            if item is None:
+                result.append(None)
+            elif not isinstance(item, dict) or item.get("kind", "image") != "image":
+                raise refs.ReferenceError(f"{name} must contain an image reference")
+            else:
+                result.append(refs.Reference.from_dict(item))
+        return result
+
+    @classmethod
+    def IS_CHANGED(cls, references_json="", max_reference_edge=DEFAULT_MAX_REFERENCE_EDGE, **kwargs):
+        import folder_paths
+        slots = cls._slots(references_json)
+        present = refs.ReferenceSet([ref for ref in slots if ref is not None])
+        layout = [ref.to_dict() if ref is not None else None for ref in slots]
+        return _signature(present, folder_paths.get_input_directory()) + repr((layout, max_reference_edge))
+
+    def build(self, references_json="", max_reference_edge=DEFAULT_MAX_REFERENCE_EDGE, **kwargs):
+        import folder_paths
+        input_dir = folder_paths.get_input_directory()
+        outputs = []
+        for name, reference in zip(self.RETURN_NAMES, self._slots(references_json)):
+            if reference is None:
+                outputs.append(None)
+                continue
+            path = refs.reference_path(input_dir, reference.file)
+            if not path.is_file():
+                raise refs.ReferenceError(f"{name}: reference file not found: {reference.file}")
+            outputs.append(media.load_image(str(path), crop=reference.crop,
+                           max_edge=max_reference_edge, rotation=reference.rotation,
+                           mirror=reference.mirror))
+        return tuple(outputs)
+
+
+class OmnicharLocalInputImagesReferencesManager(OmnicharImagesReferencesManager):
+    DESCRIPTION = "Choose nine face, body and clothes references from ComfyUI/input, including subfolders."
+
 
 class QwenImageUploadFirstLastReferencePack(QwenImageReferencePack):
     """Fork-specific first/last-frame upload manager."""
@@ -106,12 +165,16 @@ class QwenImageLocalInput10ReferencePack(QwenImageReferencePack):
 
 
 NODE_CLASS_MAPPINGS = {
+    "OmnicharLocalInputImagesReferencesManager": OmnicharLocalInputImagesReferencesManager,
+    "OmnicharImagesReferencesManager": OmnicharImagesReferencesManager,
     "QwenImageReferencePack": QwenImageReferencePack,
     "QwenImageUploadFirstLastReferencePack": QwenImageUploadFirstLastReferencePack,
     "QwenImageLocalInputFirstLastReferencePack": QwenImageLocalInputFirstLastReferencePack,
     "QwenImageLocalInput10ReferencePack": QwenImageLocalInput10ReferencePack,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
+    "OmnicharLocalInputImagesReferencesManager": "Omnichar Images References Manager (Local Input)",
+    "OmnicharImagesReferencesManager": "Omnichar Images References Manager",
     "QwenImageReferencePack": "Qwen Image References Manager",
     "QwenImageUploadFirstLastReferencePack": "Qwen Image References Manager (Upload, First/Last)",
     "QwenImageLocalInputFirstLastReferencePack": "Qwen Image References Manager (Local Input, First/Last)",

@@ -12,6 +12,8 @@ downscaling. The original upstream node retains its name, ID, inputs and ten
 | Qwen Image References Manager (Upload, First/Last) | `QwenImageUploadFirstLastReferencePack` | `First image`, `Last image`, `first_width`, `first_height`, `last_width`, `last_height` | Upload |
 | Qwen Image References Manager (Local Input, First/Last) | `QwenImageLocalInputFirstLastReferencePack` | `First image`, `Last image`, `first_width`, `first_height`, `last_width`, `last_height` | Local input |
 | Qwen Image References Manager (Local Input, 10 Images) | `QwenImageLocalInput10ReferencePack` | `image_1` through `image_10` | Local input |
+| Omnichar Images References Manager | `OmnicharImagesReferencesManager` | `face`, `face_2`, `face_3`, `body`, `body_2`, `body_3`, `cloths`, `cloths_2`, `cloths_3` | Upload |
+| Omnichar Images References Manager (Local Input) | `OmnicharLocalInputImagesReferencesManager` | Same nine named outputs | Local input |
 
 Only the original upstream ID `QwenImageReferencePack` is preserved for compatibility.
 The fork variants use the descriptive IDs above; old fork IDs and workflow
@@ -34,8 +36,8 @@ Local Input node. Local selection supports filename filtering and needs no uploa
 Images fill the grid in output order: 5 x 2 for ten images, 2 x 1 for first/last.
 Empty outputs return `None`.
 
-Double-click a tile or use its edit control to crop, rotate or mirror it.
-All nodes share the Crop presets: **Free**, **1:1 (Square)**,
+On the Qwen managers, double-click a tile or use its edit control to crop, rotate or mirror it.
+Those managers share the Crop presets: **Free**, **1:1 (Square)**,
 **2:3 (Portrait Photo)**, **3:2 (Photo)**, **3:4 (Portrait Standard)**,
 **4:3 (Standard)**, **9:16 (Portrait Widescreen)**, **16:9 (Widescreen)**,
 and **21:9 (Ultrawide)**. Free releases the aspect lock for manual cropping.
@@ -61,6 +63,27 @@ four appended INT outputs report the actual scaled dimensions:
 An absent image returns `None` with width/height 0.
 
 These nodes do not generate prompts and have no video or audio support.
+
+### Omnichar character references
+
+Add **Omnichar Images References Manager** from **Qwen Image**. Its three rows
+are **Face**, **Body**, and **Clothes**, each with three fixed image slots.
+Click a slot to upload or replace one image, or drop an image onto that slot.
+Use its × button to clear it. Empty slots return `None`; other images never
+shift when a slot is cleared. The workflow preserves every slot assignment.
+
+Connect the nine outputs to the identically named inputs on Omnichar's
+**Encode Character** node. The Clothes outputs use `cloths`, `cloths_2`,
+and `cloths_3` to match Omnichar's input spelling. `max_reference_edge`
+limits the longest image edge (default 2048; 0 disables downscaling).
+This manager provides upload, replacement and removal; use the Qwen managers
+when you need the crop/rotation editor.
+
+**Omnichar Images References Manager (Local Input)** has the same three rows and
+nine outputs. Click a slot to browse images already in the ComfyUI server's
+`input` folder, including subfolders. Filter by filename and click an image to
+assign it to that exact slot. No upload is needed. Selecting an occupied slot
+replaces only that reference; the × button clears it without moving other images.
 
 ## Development
 

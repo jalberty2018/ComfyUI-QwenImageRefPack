@@ -45,6 +45,8 @@ def test_upstream_identity_and_fork_contracts():
 
 def test_only_current_node_ids_are_registered():
     expected = {
+        "OmnicharImagesReferencesManager",
+        "OmnicharLocalInputImagesReferencesManager",
         "QwenImageReferencePack",
         "QwenImageUploadFirstLastReferencePack",
         "QwenImageLocalInputFirstLastReferencePack",
